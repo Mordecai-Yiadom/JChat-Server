@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Main-Class: jchat.server.ServerApp
+Created-By: Mordecai Yiadom
