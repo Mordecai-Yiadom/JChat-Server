@@ -11,7 +11,8 @@ public class ServerApp
         System.out.println("Running JChat Server");
         ConfigFileParser parser = new ConfigFileParser(".env");
 
-        server = new JChatServer(parser.getInteger("Listen-Port"));
-        server.start(args);
+        server = new JChatServer();
+        server.start(parser.getInteger("Listen-Port"));
+
     }
 }

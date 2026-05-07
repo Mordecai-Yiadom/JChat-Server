@@ -50,9 +50,6 @@ public class ConfigFileParser
 
                 valueMap.put(key.toString(), value.toString());
             }
-
-            System.out.println(valueMap);
-
         }
         catch (Exception ex)
         {
