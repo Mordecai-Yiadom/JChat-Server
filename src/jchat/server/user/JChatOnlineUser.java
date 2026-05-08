@@ -1,15 +1,13 @@
 package jchat.server.user;
 
-import jchat.services.database.records.JChatUser;
+import jchat.core.net.entity.JChatTextMessage;
+import jchat.core.net.entity.JChatUser;
+import jchat.core.net.protocol.JChatProtocolUtil;
+import jchat.core.net.protocol.tcp.JChatClientMessagePacket;
 
-import java.io.ByteArrayOutputStream;
+
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
 
 public class JChatOnlineUser
 {
@@ -21,25 +19,21 @@ public class JChatOnlineUser
         this.socket = socket;
     }
 
-    public void sendMessage(String message)
+
+    public boolean sendMessage(String message)
     {
         try
         {
-            ByteBuffer byteBuffer = ByteBuffer.allocate(message.getBytes().length);
-            byteBuffer.clear().put(message.getBytes()).flip();
-
-            while(byteBuffer.hasRemaining())
-            {
-                socket.write(byteBuffer);
-            }
-
-
-            System.out.printf("[Server Info] Message sent to %s\n", socket.getRemoteAddress().toString());
+            JChatProtocolUtil.sendJChatTCPPacket(JChatClientMessagePacket.create(
+                    new JChatTextMessage("SERVER-123931023", message)), socket);
+            return true;
         }
-        catch (IOException ex)
+        catch (Exception ex)
         {
             ex.printStackTrace();
         }
+
+        return false;
     }
 
     public SocketChannel getSocket()

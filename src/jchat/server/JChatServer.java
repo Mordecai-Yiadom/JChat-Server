@@ -74,7 +74,6 @@ public class JChatServer
         selector = Selector.open();
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-
         while(isRunning)
         {
             try
@@ -170,8 +169,8 @@ public class JChatServer
             {
                 ONLINE_USERS.remove(user);
                 System.out.println("[Server INFO] User disconnected.");
+                return;
             }
-
         }
     }
 }

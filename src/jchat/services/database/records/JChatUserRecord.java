@@ -1,8 +1,8 @@
 package jchat.services.database.records;
 
-public record JChatUser (int id, String username)
+public record JChatUserRecord(int id, String username)
 {
-    public static boolean isValid(JChatUser user)
+    public static boolean isValid(JChatUserRecord user)
     {
         return true;
     }

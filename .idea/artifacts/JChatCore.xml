@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="JChatCore">
+    <output-path>$PROJECT_DIR$/out/artifacts/JChatCore</output-path>
+    <root id="archive" name="JChatCore.jar">
+      <element id="dir-copy" path="$PROJECT_DIR$/out/production/JChatServer/jchat/core" />
+    </root>
+  </artifact>
+</component>
