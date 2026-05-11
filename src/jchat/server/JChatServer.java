@@ -23,138 +23,137 @@ public class JChatServer
     private Selector selector;
 
     private boolean isRunning;
+    private String name;
 
     private Set<JChatOnlineUser> ONLINE_USERS;
 
     private Thread listenThread;
 
+    private static final String DEFAULT_SERVER_NAME = "JChatServer";
+
     public JChatServer()
     {
-        ONLINE_USERS = new HashSet<>();
+        this(DEFAULT_SERVER_NAME);
     }
 
-    public void start(int port)
+    public JChatServer(String name)
     {
+        ONLINE_USERS = new HashSet<>();
+        this.name = name;
+    }
+
+
+    public void start(int port) {
         isRunning = true;
 
-        try
-        {
+        try {
             createServerSocket(port);
             multiplexSocketChannels();
-        }
-        catch (IOException ex)
-        {
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
 
     }
 
-    public void stop()
-    {
+    public void stop() {
         isRunning = false;
     }
 
-    private void createServerSocket(int port) throws IOException
-    {
+    private void createServerSocket(int port) throws IOException {
         serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.bind(new InetSocketAddress(port));
         serverSocketChannel.configureBlocking(false);
     }
 
-    public void broadcast(String message)
-    {
-        for(JChatOnlineUser user : ONLINE_USERS)
-        {
+    public void broadcast(String message) {
+        for (JChatOnlineUser user : ONLINE_USERS) {
             user.sendMessage(message);
         }
     }
 
 
-    private void multiplexSocketChannels() throws IOException
-    {
+    private void multiplexSocketChannels() throws IOException {
         selector = Selector.open();
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-        while(isRunning)
-        {
-            try
-            {
+        while (isRunning) {
+            try {
                 selector.select();
 
-                for(SelectionKey key : selector.selectedKeys())
+                for (SelectionKey key : selector.selectedKeys())
                 {
-                    if(key.isAcceptable())
+                    if (key.isAcceptable())
                     {
                         connectNewUser();
                     }
 
-                    if(key.isReadable())
+                    if (key.isReadable())
                     {
-                        String message = readMessage((SocketChannel) key.channel());
-
-                        if(message == null)
-                        {
-                            disconnectUser((SocketChannel) key.channel());
-                            ((SocketChannel) key.channel()).close();
-                        }
-                        else System.out.print(message);
+                        processPackets((SocketChannel) key.channel());
                     }
                 }
 
                 selector.selectedKeys().clear();
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
 
     }
 
-    private void connectNewUser()
-    {
-        try
-        {
+    private void connectNewUser() {
+        try {
             SocketChannel clientSocket = serverSocketChannel.accept();
             clientSocket.configureBlocking(false);
             clientSocket.register(selector, SelectionKey.OP_READ);
 
             JChatOnlineUser user = new JChatOnlineUser(clientSocket, null);
 
-            if(user == null) return;
-            ONLINE_USERS.add(user);
-
+            if (user == null) return;
             broadcast("A new user has joined.");
 
-            user.sendMessage("Welcome User");
-        }
-        catch(IOException ex)
-        {
+            ONLINE_USERS.add(user);
+            user.sendMessage("Welcome!");
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    private String readMessage(SocketChannel socketChannel)
+    private void processPackets(SocketChannel socketChannel)
     {
         try
         {
             ArrayList<JChatTCPPacket> packets = JChatProtocolUtil.readJChatTCPPacket(socketChannel);
 
-            for(JChatTCPPacket packet : packets)
+            for (JChatTCPPacket packet : packets)
             {
-                JChatTextMessage message = JChatClientMessagePacket.parseTextMessage(packet);
-                return String.format("<%s> %s\n", message.getSender(), message.getMessage());
+                switch(packet.getPacketCode())
+                {
+                    case CLIENT_GENERATED_MESSAGE:
+                        onTextMessageReceived(packet, socketChannel);
+                        break;
+                }
             }
         }
         catch (IOException ex)
         {
-            ex.printStackTrace();
-        }
 
-        return null;
+            if(ex.getMessage().equalsIgnoreCase("Connection Reset"))
+                disconnectUser(socketChannel);
+            else
+                ex.printStackTrace();
+        }
     }
 
 
+    private void onTextMessageReceived(JChatTCPPacket packet, SocketChannel socketChannel)
+    {
+        for(JChatOnlineUser user : ONLINE_USERS)
+        {
+            if(socketChannel.equals(user.getSocket())) continue;
+            user.sendPacket(packet);
+        }
+    }
 
 
     private void disconnectUser(SocketChannel socketChannel)
@@ -165,9 +164,22 @@ public class JChatServer
             if(user.getSocket().equals(socketChannel))
             {
                 ONLINE_USERS.remove(user);
+
+                try
+                {
+                    socketChannel.close();
+                }
+                catch(IOException ex)
+                {
+                    ex.printStackTrace();
+                }
+
+                broadcast("A user has disconnected.");
                 System.out.println("[Server INFO] User disconnected.");
+
                 return;
             }
         }
+
     }
 }
