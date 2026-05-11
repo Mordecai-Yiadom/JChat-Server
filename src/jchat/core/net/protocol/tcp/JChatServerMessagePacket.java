@@ -8,7 +8,8 @@ public class JChatServerMessagePacket
     {
         return new JChatTCPPacket.Builder()
                 .setPacketCode(JChatTCPPacket.PacketCode.SERVER_GENERATED_MESSAGE)
-                .setPayload(message)
+                .addMetaData("SENDER", message.getSender())
+                .setPayload(message.getMessage())
                 .build();
     }
 }

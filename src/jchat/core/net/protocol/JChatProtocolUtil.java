@@ -6,6 +6,8 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.List;
 
 public class JChatProtocolUtil
 {
@@ -61,6 +63,39 @@ public class JChatProtocolUtil
        return byteToCharArray(serializeObject(object));
     }
 
+    public static Serializable deserializeObject(byte[] buffer)
+    {
+        try
+        {
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(buffer);
+            ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
+
+            return (Serializable) objectInputStream.readObject();
+        }
+        catch(Exception ex)
+        {
+            ex.printStackTrace();
+        }
+        return null;
+    }
+
+    public static Serializable deserializeObject(ByteBuffer buffer)
+    {
+        return deserializeObject(buffer.array());
+    }
+
+
+    public static Serializable deserializeObject(char[] buffer)
+    {
+        return deserializeObject(charToByteArray(buffer));
+    }
+
+    public static Serializable deserializeObject(String buffer)
+    {
+        return deserializeObject(buffer.getBytes());
+    }
+
+
     public static void sendJChatTCPPacket(JChatTCPPacket packet, SocketChannel socketChannel) throws IOException
     {
         ByteBuffer byteBuffer = ByteBuffer.allocate(packet.raw().length);
@@ -70,5 +105,22 @@ public class JChatProtocolUtil
         {
             socketChannel.write(byteBuffer);
         }
+    }
+
+    public static ArrayList<JChatTCPPacket> readJChatTCPPacket(SocketChannel socketChannel) throws IOException
+    {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(64_000);
+        byteBuffer.clear();
+
+        int bytesReadInTotal = 0;
+        int bytesReadCurrently;
+        do
+        {
+            bytesReadCurrently = socketChannel.read(byteBuffer);
+            bytesReadInTotal += bytesReadCurrently;
+        }
+        while(bytesReadCurrently > 0);
+
+        return JChatTCPPacket.parsePackets(byteBuffer.array());
     }
 }

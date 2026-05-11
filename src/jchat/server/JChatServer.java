@@ -1,5 +1,9 @@
 package jchat.server;
 
+import jchat.core.net.entity.JChatTextMessage;
+import jchat.core.net.protocol.JChatProtocolUtil;
+import jchat.core.net.protocol.tcp.JChatClientMessagePacket;
+import jchat.core.net.protocol.tcp.JChatTCPPacket;
 import jchat.server.user.JChatOnlineUser;
 
 import java.io.IOException;
@@ -9,6 +13,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -44,8 +49,6 @@ public class JChatServer
 
     }
 
-
-
     public void stop()
     {
         isRunning = false;
@@ -58,7 +61,6 @@ public class JChatServer
         serverSocketChannel.configureBlocking(false);
     }
 
-
     public void broadcast(String message)
     {
         for(JChatOnlineUser user : ONLINE_USERS)
@@ -66,7 +68,6 @@ public class JChatServer
             user.sendMessage(message);
         }
     }
-
 
 
     private void multiplexSocketChannels() throws IOException
@@ -96,7 +97,7 @@ public class JChatServer
                             disconnectUser((SocketChannel) key.channel());
                             ((SocketChannel) key.channel()).close();
                         }
-                        else System.out.printf("<User> %s\n", message);
+                        else System.out.print(message);
                     }
                 }
 
@@ -135,30 +136,26 @@ public class JChatServer
 
     private String readMessage(SocketChannel socketChannel)
     {
-        StringBuilder message = new StringBuilder();
-
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-        byteBuffer.clear();
-
         try
         {
-            socketChannel.read(byteBuffer);
+            ArrayList<JChatTCPPacket> packets = JChatProtocolUtil.readJChatTCPPacket(socketChannel);
 
-            for(int i = 0; i < byteBuffer.array().length; i++)
+            for(JChatTCPPacket packet : packets)
             {
-                char c = (char) byteBuffer.array()[i];
-                if(c == '\0') break;
-                message.append(c);
+                JChatTextMessage message = JChatClientMessagePacket.parseTextMessage(packet);
+                return String.format("<%s> %s\n", message.getSender(), message.getMessage());
             }
         }
-        catch(IOException ex)
+        catch (IOException ex)
         {
             ex.printStackTrace();
-            return null;
         }
 
-        return message.toString();
+        return null;
     }
+
+
+
 
     private void disconnectUser(SocketChannel socketChannel)
     {
