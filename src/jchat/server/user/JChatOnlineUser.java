@@ -21,21 +21,7 @@ public class JChatOnlineUser
     }
 
 
-    public boolean sendMessage(String message)
-    {
-        try
-        {
-            JChatProtocolUtil.sendJChatTCPPacket(JChatClientMessagePacket.create(
-                    new JChatTextMessage("SERVER-123931023", message)), socket);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            ex.printStackTrace();
-        }
 
-        return false;
-    }
 
     public boolean sendPacket(JChatTCPPacket packet)
     {

@@ -1,9 +1,13 @@
 package jchat.services.database;
 
+import java.sql.ResultSet;
+
 public interface DatabaseContextProvider
 {
     void connect();
     void disconnect();
 
-    QueryResult query(String query);
+    ResultSet query(String query);
+    int update(String update);
+
 }

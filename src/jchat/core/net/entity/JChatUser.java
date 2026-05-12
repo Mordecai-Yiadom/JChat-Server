@@ -1,5 +1,7 @@
 package jchat.core.net.entity;
 
+import java.util.UUID;
+
 public class JChatUser
 {
     private int id;

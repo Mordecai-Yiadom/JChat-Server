@@ -145,7 +145,9 @@ public class JChatTCPPacket
         }
 
         //Parse payload
-        String payload = rawPacket.split(PAYLOAD_DELIMITER)[1];
+        String payload = "";
+        if(rawPacket.split(PAYLOAD_DELIMITER).length > 0)
+            payload = rawPacket.split(PAYLOAD_DELIMITER)[1];
 
         //Create JChatTCPPacket Object
         return new JChatTCPPacket.Builder()
@@ -211,8 +213,10 @@ public class JChatTCPPacket
             Level 100: Connection
          ***************************/
 
-        CLIENT_CONNECTION_REQUEST(101),
+        CLIENT_CONNECT_REQUEST(101),
         CLIENT_DISCONNECT_REQUEST(102),
+        CLIENT_CONNECTION_ACCEPTED_RESPONSE(103),
+        CLIENT_CONNECTION_REJECTED_RESPONSE(104),
 
 
         /****************************
