@@ -213,7 +213,7 @@ public class JChatServer
     {
         try
         {
-            JChatProtocolUtil.sendJChatTCPPacket(JChatClientMessagePacket.create(
+            JChatProtocolUtil.sendJChatTCPPacket(JChatServerMessagePacket.create(
                     new JChatTextMessage(this.name, message)), user.getSocket());
             return true;
         }
