@@ -21,7 +21,7 @@ public class JChatUserAuthService
     public boolean authenticateUserCredentials(String username, String password)
     {
         String query =
-                String.format("SELECT user_id FROM jchat_localtest.users WHERE username=\"%s\" AND password=\"%s\"",
+                String.format("SELECT user_id FROM jchat.users WHERE username=\"%s\" AND password=\"%s\"",
                         username, password);
         ResultSet resultSet = context.query(query);
 
@@ -42,7 +42,7 @@ public class JChatUserAuthService
     public int getUserId(String username)
     {
         String query =
-                String.format("SELECT user_id FROM jchat_localtest.users WHERE username=\"%s\"", username);
+                String.format("SELECT user_id FROM jchat.users WHERE username=\"%s\"", username);
         ResultSet resultSet = context.query(query);
 
         try

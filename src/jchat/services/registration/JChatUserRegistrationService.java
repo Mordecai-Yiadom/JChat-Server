@@ -24,7 +24,7 @@ public class JChatUserRegistrationService
 
     public boolean registerNewUser(String username, String password)
     {
-        String updateCommand = String.format("INSERT INTO jchat_localtest.users VALUES(%d, \"%s\", \"%s\")",
+        String updateCommand = String.format("INSERT INTO jchat.users VALUES(%d, \"%s\", \"%s\")",
                 generateID(),
                 username,
                 password);

@@ -207,6 +207,9 @@ public class JChatServer
             if(socketChannel.equals(user.getSocket())) continue;
             user.sendPacket(packet);
         }
+
+        System.out.printf("[Server INFO] %s sent smessage: \"%s\"\n",
+                packet.getMetaData("Sender"), packet.getPayload());
     }
 
     public boolean sendMessage(JChatOnlineUser user, String message)
