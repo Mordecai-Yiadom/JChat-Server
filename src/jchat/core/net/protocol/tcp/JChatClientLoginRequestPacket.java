@@ -1,6 +1,6 @@
 package jchat.core.net.protocol.tcp;
 
-import jchat.core.net.entity.JChatUserLoginCredentials;
+import jchat.core.net.entity.JChatUserCredentials;
 
 public class JChatClientLoginRequestPacket
 {
@@ -17,9 +17,9 @@ public class JChatClientLoginRequestPacket
                 .build();
     }
 
-    public static JChatUserLoginCredentials parseUserLoginCredentials(JChatTCPPacket packet)
+    public static JChatUserCredentials parseUserLoginCredentials(JChatTCPPacket packet)
     {
-        return new JChatUserLoginCredentials(
+        return new JChatUserCredentials(
                 packet.getMetaData(USERNAME_METADATA),
                 packet.getMetaData(PASSWORD_METADATA));
     }

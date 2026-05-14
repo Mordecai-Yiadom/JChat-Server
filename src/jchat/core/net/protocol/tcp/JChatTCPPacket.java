@@ -215,6 +215,7 @@ public class JChatTCPPacket
 
         CLIENT_CONNECT_REQUEST(101),
         CLIENT_DISCONNECT_REQUEST(102),
+
         CLIENT_CONNECTION_ACCEPTED_RESPONSE(103),
         CLIENT_CONNECTION_REJECTED_RESPONSE(104),
 
@@ -226,7 +227,19 @@ public class JChatTCPPacket
         CLIENT_GENERATED_MESSAGE(201),
         CLIENT_GENERATED_COMMAND(202),
         SERVER_GENERATED_MESSAGE(203),
+
+
+
+        /****************************
+         Level 300: User Account Actions
+         ***************************/
+
+        USER_ACCOUNT_REGISTRATION_REQUEST(300),
+        USER_ACCOUNT_REGISTRATION_SUCCESSFUL(301),
+        USER_ACCOUNT_REGISTRATION_FAILED(302),
         ;
+
+
 
         //Level 400: Error
         private final int code;

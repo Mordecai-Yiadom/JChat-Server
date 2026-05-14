@@ -16,7 +16,6 @@ public class JChatUserAuthService
     public JChatUserAuthService()
     {
         context = MySQLContextProvider.createDefault(true);
-
     }
 
     public boolean authenticateUserCredentials(String username, String password)
@@ -38,5 +37,25 @@ public class JChatUserAuthService
                 ex.printStackTrace();
         }
         return false;
+    }
+
+    public int getUserId(String username)
+    {
+        String query =
+                String.format("SELECT user_id FROM jchat_localtest.users WHERE username=\"%s\"", username);
+        ResultSet resultSet = context.query(query);
+
+        try
+        {
+            resultSet.next();
+            return resultSet.getInt("user_id");
+        }
+        catch(SQLException ex)
+        {
+            if(!ex.getMessage().equalsIgnoreCase("Illegal operation on empty result set."))
+                ex.printStackTrace();
+        }
+
+        return Integer.MIN_VALUE;
     }
 }

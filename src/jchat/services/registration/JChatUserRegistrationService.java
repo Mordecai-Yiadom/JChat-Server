@@ -17,10 +17,15 @@ public class JChatUserRegistrationService
         databaseContext = MySQLContextProvider.createDefault(true);
     }
 
+    private static int generateID()
+    {
+        return Math.abs(UUID.randomUUID().hashCode());
+    }
+
     public boolean registerNewUser(String username, String password)
     {
-        String updateCommand = String.format("INSERT INTO jchat_localtest.users VALUES(%d, %s, %s)",
-                UUID.randomUUID().hashCode(),
+        String updateCommand = String.format("INSERT INTO jchat_localtest.users VALUES(%d, \"%s\", \"%s\")",
+                generateID(),
                 username,
                 password);
 

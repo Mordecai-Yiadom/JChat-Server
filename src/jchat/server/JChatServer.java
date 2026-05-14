@@ -2,20 +2,17 @@ package jchat.server;
 
 import jchat.core.net.entity.JChatTextMessage;
 import jchat.core.net.entity.JChatUser;
-import jchat.core.net.entity.JChatUserLoginCredentials;
+import jchat.core.net.entity.JChatUserCredentials;
 import jchat.core.net.protocol.JChatProtocolUtil;
 import jchat.core.net.protocol.tcp.*;
 import jchat.server.user.JChatOnlineUser;
 import jchat.services.authentication.JChatUserAuthService;
 import jchat.services.registration.JChatUserRegistrationService;
 
+
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStreamWriter;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -61,36 +58,43 @@ public class JChatServer
 
     }
 
-    public void stop() {
+    public void stop()
+    {
         isRunning = false;
     }
 
-    private void createServerSocket(int port) throws IOException {
+    private void createServerSocket(int port) throws IOException
+    {
         serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.bind(new InetSocketAddress(port));
         serverSocketChannel.configureBlocking(false);
     }
 
-    public void broadcast(String message) {
-        for (JChatOnlineUser user : ONLINE_USERS) {
+    public void broadcast(String message)
+    {
+        for (JChatOnlineUser user : ONLINE_USERS)
+        {
             sendMessage(user, message);
         }
     }
 
 
-    private void multiplexSocketChannels() throws IOException {
+    private void multiplexSocketChannels() throws IOException
+    {
         selector = Selector.open();
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-        while (isRunning) {
-            try {
+        while (isRunning)
+        {
+            try
+            {
                 selector.select();
 
                 for (SelectionKey key : selector.selectedKeys())
                 {
                     if (key.isAcceptable())
                     {
-                        connectNewUser();
+                        acceptConnection();
                     }
 
                     if (key.isReadable())
@@ -100,28 +104,59 @@ public class JChatServer
                 }
 
                 selector.selectedKeys().clear();
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 ex.printStackTrace();
             }
         }
 
     }
 
-    private void connectNewUser() {
-        try {
+    private void acceptConnection()
+    {
+        try
+        {
             SocketChannel clientSocket = serverSocketChannel.accept();
             clientSocket.configureBlocking(false);
             clientSocket.register(selector, SelectionKey.OP_READ);
-
-            JChatOnlineUser user = new JChatOnlineUser(clientSocket, null);
-
-            if (user == null) return;
-            ONLINE_USERS.add(user);
-
-        } catch (IOException ex) {
+        }
+        catch (IOException ex)
+        {
             ex.printStackTrace();
         }
     }
+
+
+    private void disconnectConnection(SocketChannel socketChannel)
+    {
+        try
+        {
+            socketChannel.close();
+            System.out.println("[Server INFO] A client has disconnected.");
+        }
+        catch(IOException ex)
+        {
+            ex.printStackTrace();
+        }
+    }
+
+    private void connectNewUser(SocketChannel socketChannel, JChatUser user)
+    {
+        JChatOnlineUser onlineUser = new JChatOnlineUser(socketChannel, user);
+        if (user == null) return;
+        ONLINE_USERS.add(onlineUser);
+    }
+
+    private void disconnectUser(JChatOnlineUser user)
+    {
+        disconnectConnection(user.getSocket());
+        ONLINE_USERS.remove(user);
+
+        broadcast(String.format("%s has disconnected.", user.getUsername()));
+        System.out.printf("[Server INFO] User %s(id=%d) has disconnected.\n", user.getUsername(), user.getId());
+    }
+
 
     private void processPackets(SocketChannel socketChannel)
     {
@@ -140,13 +175,25 @@ public class JChatServer
                     case CLIENT_CONNECT_REQUEST:
                         onClientConnectionRequest(packet, socketChannel);
                         break;
+
+                    case USER_ACCOUNT_REGISTRATION_REQUEST:
+                        onUserAccountRegistrationRequest(packet, socketChannel);
+                        break;
                 }
             }
         }
         catch (IOException ex)
         {
             if(ex.getMessage().equalsIgnoreCase("Connection Reset"))
-                disconnectUser(socketChannel);
+            {
+                JChatOnlineUser user = getUser(socketChannel);
+
+                if(user == null)
+                    disconnectConnection(socketChannel);
+                else
+                    disconnectUser(user);
+            }
+
             else
                 ex.printStackTrace();
         }
@@ -180,45 +227,61 @@ public class JChatServer
 
     private void onClientConnectionRequest(JChatTCPPacket packet, SocketChannel socketChannel) throws IOException
     {
-        JChatUserLoginCredentials credentials = JChatClientLoginRequestPacket.parseUserLoginCredentials(packet);
+        JChatUserCredentials credentials = JChatClientLoginRequestPacket.parseUserLoginCredentials(packet);
         if(userAuthService.authenticateUserCredentials(credentials.username(), credentials.password()))
         {
-            broadcast("A new user has joined.");
             JChatProtocolUtil.sendJChatTCPPacket(JChatClientLoginAcceptedPacket.create(), socketChannel);
+
+            JChatUser user = new JChatUser(userAuthService.getUserId(credentials.username()), credentials.username());
+            connectNewUser(socketChannel, user);
+
+            broadcast(String.format("%s has connected.", user.getUsername()));
         }
         else
         {
             JChatProtocolUtil.sendJChatTCPPacket(JChatClientLoginRejectedPacket.create(), socketChannel);
-            disconnectUser(socketChannel);
+            disconnectConnection(socketChannel);
         }
 
     }
 
-
-    private void disconnectUser(SocketChannel socketChannel)
+    private void onUserAccountRegistrationRequest(JChatTCPPacket packet, SocketChannel socketChannel) throws IOException
     {
+        JChatUserCredentials credentials = JChatUserRegistrationRequestPacket.parseRequestedCredentials(packet);
 
+        if(userRegistrationService.registerNewUser(credentials.username(), credentials.password()))
+        {
+            JChatProtocolUtil.sendJChatTCPPacket(JChatUserRegistrationSuccessfulPacket.create(), socketChannel);
+            System.out.println("[Service(User-Registration) INFO]: Successfully Registered new account.");
+        }
+        else
+        {
+            JChatProtocolUtil.sendJChatTCPPacket(
+                    JChatUserRegistrationFailedPacket.create("Username is already taken"), socketChannel);
+            System.out.println("[Service(User-Registration) INFO]: Failed to register new account.");
+        }
+    }
+
+    private JChatOnlineUser getUser(String username)
+    {
+        for(JChatOnlineUser user : ONLINE_USERS)
+        {
+            if(user.getUsername().equals(username))
+                return user;
+        }
+        return null;
+    }
+
+    private JChatOnlineUser getUser(SocketChannel socketChannel)
+    {
         for(JChatOnlineUser user : ONLINE_USERS)
         {
             if(user.getSocket().equals(socketChannel))
-            {
-                ONLINE_USERS.remove(user);
-
-                try
-                {
-                    socketChannel.close();
-                }
-                catch(IOException ex)
-                {
-                    ex.printStackTrace();
-                }
-
-                broadcast(String.format("%s has disconnected.", user.getUsername()));
-                System.out.println("[Server INFO] User disconnected.");
-
-                return;
-            }
+                return user;
         }
-
+        return null;
     }
+
+
+
 }

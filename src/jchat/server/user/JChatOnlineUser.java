@@ -18,10 +18,8 @@ public class JChatOnlineUser
     public JChatOnlineUser(SocketChannel socket, JChatUser user)
     {
         this.socket = socket;
+        this.user = user;
     }
-
-
-
 
     public boolean sendPacket(JChatTCPPacket packet)
     {
@@ -45,6 +43,14 @@ public class JChatOnlineUser
 
     public String getUsername()
     {
-        return null;
+        if(user == null) return null;
+        return user.getUsername();
     }
+
+    public int getId()
+    {
+        if(user == null) return Integer.MIN_VALUE;
+        return user.getId();
+    }
+
 }
